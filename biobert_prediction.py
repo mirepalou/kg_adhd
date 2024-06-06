@@ -12,6 +12,7 @@ import numpy as np
 from tqdm import tqdm, trange
 from sklearn import metrics
 import json
+import os
 
 
 ### Embedding data
@@ -158,7 +159,7 @@ def save_predictions(preds, samples, file_name, ground_truth= True):
     
     scores = ['score_'+str(i) for i in range(preds.shape[1])]
     column_names = ['subject', 'object', 'true_label']+scores
-    results = pd.DataFrame(coulmns=column_names)
+    results = pd.DataFrame(columns=column_names)
 
     for i, pred in enumerate(preds):
         # get the scores for each possible label
@@ -259,19 +260,18 @@ def main():
     '''
 
     # TEST
-    # test_examples_0 = data[num_val:]
-    # test_examples = test_examples_0[test_examples_0['property_label'].isin(labels)].reset_index() # just in case
-    test_examples = pd.read_csv('test.csv')
+    test_examples = pd.read_csv('test_drugs.csv')
     test_labels = test_examples.property_label
-    # test_labels = ['interacts with' for i in range(len(test_examples))] #set it as default for formatting
     
     ##########################################added by me
     label_map = json.load(open('map_rel.txt'))
     num_labels = len(label_map) 
 
     # Load a trained model and vocabulary that you have fine-tuned
-    model = AutoModelForSequenceClassification.from_pretrained('/saved_model', num_labels=num_labels)
-    tokenizer = AutoTokenizer.from_pretrained('/saved_model')
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    save_directory = os.path.join(script_dir, 'saved_model')
+    model = AutoModelForSequenceClassification.from_pretrained(save_directory, num_labels=num_labels)
+    tokenizer = AutoTokenizer.from_pretrained(save_directory)
 
     test_dataloader, all_label_ids_tt = get_features(test_examples, tokenizer, label_map)
 
@@ -286,7 +286,7 @@ def main():
     # preds = evaluate(model, test_dataloader, num_labels, 'Testing')
     print('Testing')
     preds = predict(model, test_dataloader)
-    save_predictions(preds, test_examples, 'test_preds.csv')
+    save_predictions(preds, test_examples, 'test_preds.csv', False)
 
     ###### still need to check what is exactly going on
     # metrics_predict(preds, test_triples, all_label_ids_tt, list(test_labels), all_triples_str_set, tr_loss, nb_tr_steps, result)

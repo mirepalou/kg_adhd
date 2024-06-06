@@ -118,16 +118,16 @@ def get_features(examples, tokenizer, label_map, task, max_seq_length = 128):
 
     return dataloader, all_label_ids
 
-def train(model, optimizer, train_dataloader, num_labels):
+def train(model, device, optimizer, train_dataloader, num_labels):
     '''
     altered from kg-bert
     '''
     model.train()
-    for _ in trange(3, desc="Epoch"):
+    for _ in trange(1, desc="Epoch"):
         tr_loss = 0
         nb_tr_examples, nb_tr_steps = 0, 0
         for step, batch in enumerate(tqdm(train_dataloader, desc="Iteration")):
-            # batch = tuple(t.to(device) for t in batch)
+            batch = tuple(t.to(device) for t in batch)
             input_ids, input_mask, segment_ids, label_ids = batch
 
             # define a new function to compute loss values for both output_modes
@@ -165,7 +165,7 @@ def compute_metrics(preds, labels):
         simple_accuracy = (preds == labels).mean()
         return {"acc": simple_accuracy}
 
-def evaluate(model, dataloader, num_labels, all_label_ids = None, tr_loss=0, nb_tr_steps=0):
+def evaluate(model, device, dataloader, num_labels, all_label_ids = None, tr_loss=0, nb_tr_steps=0):
     '''
     altered kg-bert to compact
     '''
@@ -176,6 +176,10 @@ def evaluate(model, dataloader, num_labels, all_label_ids = None, tr_loss=0, nb_
     preds = []
 
     for input_ids, input_mask, segment_ids, label_ids in tqdm(dataloader, desc='Evaluating'):
+        input_ids = input_ids.to(device)
+        input_mask = input_mask.to(device)
+        segment_ids = segment_ids.to(device)
+        label_ids = label_ids.to(device)
 
         with torch.no_grad():
             logits = model(input_ids, segment_ids, input_mask, labels=None)
@@ -195,8 +199,8 @@ def evaluate(model, dataloader, num_labels, all_label_ids = None, tr_loss=0, nb_
     preds = preds[0]
     print(preds, preds.shape)
     
-    preds = np.argmax(preds, axis=1)
-    result = compute_metrics(preds, all_label_ids.numpy())
+    preds_r = np.argmax(preds, axis=1)
+    result = compute_metrics(preds_r, all_label_ids.numpy())
     loss = tr_loss/nb_tr_steps #if args.do_train else None
 
     result['eval_loss'] = eval_loss
@@ -213,7 +217,7 @@ def save_predictions(preds, samples, file_name, ground_truth= True):
     
     scores = ['score_'+str(i) for i in range(preds.shape[1])]
     column_names = ['subject', 'object', 'true_label']+scores
-    results = pd.DataFrame(coulmns=column_names)
+    results = pd.DataFrame(columns=column_names)
 
     for i, pred in enumerate(preds):
         # get the scores for each possible label
@@ -235,16 +239,24 @@ def save_predictions(preds, samples, file_name, ground_truth= True):
 
 
 def save_model(model, tokenizer):
+
+    #Get the directory where this script is located
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    save_directory = os.path.join(script_dir, 'saved_model')
+    
+    if not os.path.exists(save_directory): # Ensure the save directory exists
+        os.makedirs(save_directory)    
+        
     # Save a trained model, configuration and tokenizer
     model_to_save = model.module if hasattr(model, 'module') else model  # Only save the model it-self
 
     # If we save using the predefined names, we can load using `from_pretrained`
-    output_model_file = os.path.join('/saved_model', WEIGHTS_NAME)
-    output_config_file = os.path.join('/saved_model', CONFIG_NAME)
+    output_model_file = os.path.join(save_directory, WEIGHTS_NAME)
+    output_config_file = os.path.join(save_directory, CONFIG_NAME)
 
     torch.save(model_to_save.state_dict(), output_model_file)
     model_to_save.config.to_json_file(output_config_file)
-    tokenizer.save_vocabulary('/saved_model')
+    tokenizer.save_vocabulary(save_directory)
 
 
 
@@ -253,6 +265,8 @@ def main():
     '''
     Main structure of the code
     '''
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # TRAIN
     train_examples = pd.read_csv('train_ad.csv', sep='\t')
@@ -278,14 +292,16 @@ def main():
     num_labels = len(labels) ##########################################added by me
     model = AutoModelForSequenceClassification.from_pretrained('dmis-lab/biobert-v1.1', num_labels = num_labels)
     optimizer = AdamW(model.parameters(), lr=5e-5)  ##### they use others
+
+    model.to(device)
     
     # 1 training
     print('Training')
-    model, tr_loss, nb_tr_steps = train(model, optimizer, train_dataloader, num_labels)
+    model, tr_loss, nb_tr_steps = train(model, device, optimizer, train_dataloader, num_labels)
 
     # 2 validation
     print('Validation')
-    model, preds_val, result = evaluate(model, eval_dataloader, num_labels, all_label_ids_e, tr_loss, nb_tr_steps)
+    model, preds_val, result = evaluate(model, device, eval_dataloader, num_labels, all_label_ids_e, tr_loss, nb_tr_steps)
     save_predictions(preds_val, eval_examples, 'val_preds.csv')
 
 
