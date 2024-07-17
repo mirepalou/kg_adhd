@@ -111,13 +111,6 @@ def get_features(examples, tokenizer, label_map, max_seq_length = 128):
 
     return dataloader, all_label_ids
 
-def compute_metrics(preds, labels):
-        '''
-        from kg-bert
-        '''
-        assert len(preds) == len(labels)
-        simple_accuracy = (preds == labels).mean()
-        return {"acc": simple_accuracy}
 
 
 def predict(model, dataloader):
@@ -141,15 +134,7 @@ def predict(model, dataloader):
     print(preds, preds.shape)
     return preds
 
-def triples(data):
-  '''
-  Takes df and converts into list of triples
-  created by Mireia
-  '''
-  triples = pd.DataFrame()
-  triples['entities'] = data['subject_pl'] +' '+ data['property_label'] +' '+ data['object_pl']
 
-  return list(triples['entities'])
 
 def save_predictions(preds, samples, file_name, ground_truth= True):
     '''
@@ -180,79 +165,6 @@ def save_predictions(preds, samples, file_name, ground_truth= True):
     
     results.to_csv(file_name)
 
-def metrics_predict(preds, test_triples, all_label_ids, label_list, all_triples_str_set, tr_loss, nb_tr_steps, result):
-    '''
-    compact code + alterations
-    '''
-
-    all_label_ids = all_label_ids.numpy()
-
-    ranks = []
-    filter_ranks = []
-    hits = []
-    hits_filter = []
-    for i in range(10):
-        hits.append([])
-        hits_filter.append([])
-
-    for i, pred in enumerate(preds):
-        rel_values = torch.tensor(pred)
-        _, argsort1 = torch.sort(rel_values, descending=True)
-        argsort1 = argsort1.cpu().numpy()
-        # print('Sample', i)
-        # print('-- True Label:', all_label_ids[i])
-        # pred_rel = [(p, np.round(float(rel_values[p]), 3)) for p in argsort1]
-        # print('-- Predictions:', pred_rel)
-
-        rank = np.where(argsort1 == all_label_ids[i])[0][0]
-        #print(argsort1, all_label_ids[i], rank)
-        ranks.append(rank + 1)
-        test_triple = test_triples[i]
-        filter_rank = rank
-        for tmp_label_id in argsort1[:rank]:
-            tmp_label = label_list[tmp_label_id]
-            tmp_triple = [test_triple[0], tmp_label, test_triple[2]]
-            #print(tmp_triple)
-            tmp_triple_str = '\t'.join(tmp_triple)
-            if tmp_triple_str in all_triples_str_set:
-                filter_rank -= 1
-        filter_ranks.append(filter_rank + 1)
-
-        for hits_level in range(10):
-            if rank <= hits_level:
-                hits[hits_level].append(1.0)
-            else:
-                hits[hits_level].append(0.0)
-
-            if filter_rank <= hits_level:
-                hits_filter[hits_level].append(1.0)
-            else:
-                hits_filter[hits_level].append(0.0)
-
-    print("Raw mean rank: ", np.mean(ranks))
-    print("Filtered mean rank: ", np.mean(filter_ranks))
-    for i in [0,2,9]:
-        print('Raw Hits @{0}: {1}'.format(i+1, np.mean(hits[i])))
-        print('hits_filter Hits @{0}: {1}'.format(i+1, np.mean(hits_filter[i])))
-    preds_t = np.argmax(preds, axis=1)
-
-    result_t = compute_metrics(preds_t, all_label_ids)
-    loss = tr_loss/nb_tr_steps #if args.do_train else None
-
-    result_t['eval_loss'] = result['eval_loss']
-    result_t['loss'] = loss
-
-    # output_eval_file = os.path.join(args.output_dir, "test_results.txt")
-    # with open(output_eval_file, "w") as writer:
-    #     logger.info("***** Test results *****")
-    #     for key in sorted(result.keys()):
-    #         logger.info("  %s = %s", key, str(result[key]))
-    #         writer.write("%s = %s\n" % (key, str(result[key])))
-    # relation prediction, raw
-    print("Relation prediction hits@1, raw...")
-    print(metrics.accuracy_score(all_label_ids, preds_t))
-    # return 0
-
 
 def main():
     '''
@@ -260,37 +172,26 @@ def main():
     '''
 
     # TEST
-    test_examples = pd.read_csv('test_drugs.csv')
+    test_examples = pd.read_csv('test_iron_reduced.csv')
     test_labels = test_examples.property_label
     
     ##########################################added by me
-    label_map = json.load(open('map_rel.txt'))
+    label_map = json.load(open('map_rel_bs8.txt'))
     num_labels = len(label_map) 
 
     # Load a trained model and vocabulary that you have fine-tuned
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    save_directory = os.path.join(script_dir, 'saved_model')
+    save_directory = os.path.join(script_dir, 'saved_model_bs8')
     model = AutoModelForSequenceClassification.from_pretrained(save_directory, num_labels=num_labels)
     tokenizer = AutoTokenizer.from_pretrained(save_directory)
 
     test_dataloader, all_label_ids_tt = get_features(test_examples, tokenizer, label_map)
 
     
-    # 3 test
-    # train_triples = triples(train_examples)
-    # dev_triples = triples(eval_examples)
-    # test_triples = triples(test_examples)
-    # all_triples = train_triples + dev_triples + test_triples
-    # all_triples_str_set = set(all_triples)
-
-    # preds = evaluate(model, test_dataloader, num_labels, 'Testing')
+    # 3 test    
     print('Testing')
     preds = predict(model, test_dataloader)
-    save_predictions(preds, test_examples, 'test_preds.csv', False)
-
-    ###### still need to check what is exactly going on
-    # metrics_predict(preds, test_triples, all_label_ids_tt, list(test_labels), all_triples_str_set, tr_loss, nb_tr_steps, result)
-
+    save_predictions(preds, test_examples, 'test_preds_iron_final.csv', False)
 
 
 
