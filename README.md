@@ -11,10 +11,12 @@ The output of this step are the nodes and edges for both diseases' knowledge gra
 - AD: ``alz_graph_nodes_v2024-05-27.csv`` (nodes) and ``edges_ad.zip`` (edges)
 
 ## 2. Building the Knowledge Graphs
-- neo4j latest version 5.16 
-- through linux
-- necessary plugins (apoc)
-- commands:
+The knowledge graphs are built in Neo4j trhough the linux os.
+- neo4j latest version 5.16 -> Download deb file and install using terminal (``sudo dpkg -i neo4j_5.16.0_all.deb``)
+- all data files must be in the ``import`` folder
+- to execute: ``sudo service neo4j start`` (neo4j will be loaded in ``http://localhost:7474/``)
+- necessary plugins: _apoc_ -> ``curl -LJO https://github.com/neo4j/apoc/releases/download/5.16.1/apoc-5.16.1-core.jar`` and saved in the ``plugins`` folder (``sudo mv apoc-5.16.1-core.jar /var/lib/neo4j/plugins/``)
+- example of HD commands to load the data in the same neo4j instance (directly run in the neo4j terminal):
   
 ``LOAD CSV WITH HEADERS FROM 'file:///graph_nodes_v2024-02-07.csv' AS row CREATE (:HD { id: row.id, semantic_groups: row.semantic_groups, preflabel: row.preflabel, synonyms: row.synonyms, name: row.name, description: row.description }); ``
 
