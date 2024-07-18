@@ -28,11 +28,11 @@ The graphs are explored using Neo4j and python tools. For the latter we provide 
 - ``data prep.ipynb`` in ``code`` folder.
 -  Output in ``data``. ``train_neg_tt.zip`` and ``val_neg_tt.zip`` contain the positive and negative triplets from AD. The HD data is used to predict: ``test_drugs.csv`` and ``test_iron_reduced.zip``
    
-3. Fine-tuning of the model:
+2. Fine-tuning of the model:
 - script in ``code`` named ``biobert_training_weighted_f.py``
 - it needs to be executed on a gpu, installing all correct dependencies, to do so run script ``slurm-script.slurm`` in ``code``.
 - results of hyperparamter tuning are in ``results``. For each test _x_ there are 4 files: ``epoch_loss_x.txt`` (loss at each iteration of the 3 epochs), ``eval_loss_x.txt`` (loss at each iteration of the validation run), ``map_rel_x.txt`` (dictionary mapping each relationship/class to a numerical label) and ``val_preds_x_i.csv`` (with i=1..5 the predictions of that experiment for the validation set).
 - the results of the hyperparameter tuning are analyzed using python methods in ``review.ipynb`` (in ``code``)
 
-4. Predictions:
+3. Predictions:
 - script in ``code`` named ``biobert_prediction.py``
