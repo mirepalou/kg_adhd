@@ -18,7 +18,7 @@ The output of this step are the nodes and edges for both diseases' knowledge gra
   
 ``LOAD CSV WITH HEADERS FROM 'file:///graph_nodes_v2024-02-07.csv' AS row CREATE (:HD { id: row.id, semantic_groups: row.semantic_groups, preflabel: row.preflabel, synonyms: row.synonyms, name: row.name, description: row.description }); ``
 
-``LOAD CSV WITH HEADERS FROM 'file:///edges_copy.csv' AS row MATCH (subject:Node {id: (row.subject_id)}), (object:HD {id: (row.object_id)}) WITH row, subject, object WHERE NOT row.property_label IS NULL AND trim(row.property_label) <> '' CALL apoc.create.relationship(subject, row.property_label, {}, object) YIELD rel SET rel += { reference_uri: row.reference_uri, reference_supporting_text: row.reference_supporting_text, reference_date: row.reference_date, property_description: row.property_description, property_uri: row.property_uri }; ``
+``LOAD CSV WITH HEADERS FROM 'file:///edges_copy.csv' AS row MATCH (subject:HD {id: (row.subject_id)}), (object:HD {id: (row.object_id)}) WITH row, subject, object WHERE NOT row.property_label IS NULL AND trim(row.property_label) <> '' CALL apoc.create.relationship(subject, row.property_label, {}, object) YIELD rel SET rel += { reference_uri: row.reference_uri, reference_supporting_text: row.reference_supporting_text, reference_date: row.reference_date, property_description: row.property_description, property_uri: row.property_uri }; ``
 
 ## 3. Exploring the Knowledge graphs
 The graphs are explored using Neo4j and python tools. For the latter we provide the jupyter notebook with the methods used in the ``code`` folder under the name ``exploration.ipynb``.
