@@ -113,12 +113,16 @@ def get_features(examples, tokenizer, label_map, max_seq_length = 128):
 
 
 
-def predict(model, dataloader):
+def predict(model, device, dataloader):
     # model.eval()
     nb_test_steps = 0
     preds = []
 
     for input_ids, input_mask, segment_ids, label_ids in tqdm(dataloader, desc='Testing'):
+        input_ids = input_ids.to(device)
+        input_mask = input_mask.to(device)
+        segment_ids = segment_ids.to(device)
+        label_ids = label_ids.to(device)
 
         with torch.no_grad():
             logits = model(input_ids, segment_ids, input_mask, labels=None)
@@ -171,6 +175,8 @@ def main():
     Main structure of the code
     '''
 
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
     # TEST
     test_examples = pd.read_csv('test_iron_reduced.csv')
     test_labels = test_examples.property_label
@@ -190,7 +196,7 @@ def main():
     
     # 3 test    
     print('Testing')
-    preds = predict(model, test_dataloader)
+    preds = predict(model, device, test_dataloader)
     save_predictions(preds, test_examples, 'test_preds_iron_final.csv', False)
 
 
