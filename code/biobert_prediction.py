@@ -191,6 +191,8 @@ def main():
     model = AutoModelForSequenceClassification.from_pretrained(save_directory, num_labels=num_labels)
     tokenizer = AutoTokenizer.from_pretrained(save_directory)
 
+    model.to(device)
+
     test_dataloader, all_label_ids_tt = get_features(test_examples, tokenizer, label_map)
 
     
