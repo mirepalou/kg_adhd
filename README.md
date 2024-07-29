@@ -26,7 +26,10 @@ The knowledge graphs are built in Neo4j trhough the linux os.
 The graphs are explored using Neo4j and python tools. For the latter we provide the jupyter notebook with the methods used in the ``code`` folder under the name ``exploration.ipynb``.
 
 ## 4. Knowledge graph completion
-1.  Preprocess of the data in triplet format:
+0. Negative samples:
+The negative samples are created in the script ``negative_samples.ipynb``. The output is then merged and usedd in the following step.
+   
+1. Preprocess of the data in triplet format:
 - ``data prep.ipynb`` in ``code`` folder.
 -  Output in ``data``. ``train_neg_tt.zip`` and ``val_neg_tt.zip`` contain the positive and negative triplets from AD. The HD data is used to predict: ``test_drugs.csv`` and ``test_iron_reduced.zip``
    
