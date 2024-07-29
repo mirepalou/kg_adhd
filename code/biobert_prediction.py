@@ -145,10 +145,12 @@ def save_predictions(preds, samples, file_name, ground_truth= True):
     save the predictions in a dataframe with all info
     by Mireia
     '''
-    
+
     scores = ['score_'+str(i) for i in range(preds.shape[1])]
     column_names = ['subject', 'object', 'true_label']+scores
-    results = pd.DataFrame(columns=column_names)
+    # results = pd.DataFrame(columns=column_names)
+
+    results = []
 
     for i, pred in enumerate(preds):
         # get the scores for each possible label
@@ -164,9 +166,11 @@ def save_predictions(preds, samples, file_name, ground_truth= True):
         res = {'subject': sample['subject_pl'], 'object': sample['object_pl'], 'true_label': tl}
         res.update(pred_rel)
 
-        results.loc[i] = pd.Series(res)
+        # results.loc[i] = pd.Series(res)
+        results.append(res)
 
-    
+
+    results = pd.DataFrame(results, columns=column_names)
     results.to_csv(file_name)
 
 
